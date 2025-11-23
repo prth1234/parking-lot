@@ -25,11 +25,25 @@ public class ParkingService{
         return ticket;
     }
 
+    // Overloaded park method that accepts a manual issuance time (useful for testing/simulation)
+    public ParkingTicket parkVehicle(Vehicle vehicle, Time issuanceTime){
+        ParkingSpot spot = parkingLot.findSpotAndPark(vehicle);
+        if (spot == null){
+            System.err.println("No available spot for vehicle with license number: " + vehicle.getlicenseNumber());
+            return null;
+        }
+        ParkingTicket ticket = new ParkingTicket(UUID.randomUUID().toString(), spot.getId(), vehicle.getlicenseNumber(), issuanceTime, null);
+        return ticket;
+    }
+
     public double unParkVehicle(ParkingTicket ticket){
         if (ticket == null) return -1;
-        LocalDateTime now = LocalDateTime.now();
-        Time exitTime = new Time(now.getHour(), now.getMinute());
-        ticket.setExitTime(exitTime);
+        // If exit time was already provided (for simulation/testing), respect it.
+        if (ticket.getExTime() == null) {
+            LocalDateTime now = LocalDateTime.now();
+            Time exitTime = new Time(now.getHour(), now.getMinute());
+            ticket.setExitTime(exitTime);
+        }
         double amount = feeStrategy.calcFee(ticket);
         boolean paymentStatus = paymentService.processPayment(ticket.getTicketId(), amount);
         if(!paymentStatus){
